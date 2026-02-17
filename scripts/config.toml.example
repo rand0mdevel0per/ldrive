@@ -1,0 +1,30 @@
+# LDrive Node Configuration
+
+# Authentication
+token = "YOUR_LINUXDO_JWT_TOKEN"
+
+# Storage settings
+[storage]
+path = "~/.ldrive/data"
+quota = "50GB"
+
+# Network settings
+[network]
+listen_addr = "0.0.0.0:4433"
+bootstrap_nodes = [
+    "gateway1.ldrive.io:4433",
+    "gateway2.ldrive.io:4433"
+]
+
+# Node mode: storage, gateway, or hybrid
+mode = "storage"
+
+# Gateway-specific settings (only for gateway/hybrid mode)
+[gateway]
+public_addr = ""  # Your public IP:port
+relay_enabled = true
+
+# Auto-update settings
+[update]
+enabled = true
+check_interval = "24h"
