@@ -36,6 +36,12 @@ export default function App() {
         body: JSON.stringify({ code, redirect_uri: window.location.origin })
       })
       const data = await res.json()
+
+      if (data.error) {
+        alert('登录失败: ' + (data.error_description || data.error))
+        return
+      }
+
       if (data.access_token) {
         localStorage.setItem('ldrive_token', data.access_token)
         const userRes = await fetch(`${WORKER_URL}/oauth/user`, {
@@ -45,11 +51,14 @@ export default function App() {
         localStorage.setItem('ldrive_user', JSON.stringify(userData))
         setUser(userData)
         fetchBalance(userData.id)
+      } else {
+        alert('登录失败: 未获取到 access_token')
       }
     } catch (e) {
-      console.error('OAuth failed:', e)
+      alert('登录失败: ' + e.message)
+    } finally {
+      window.history.replaceState({}, '', '/')
     }
-    window.history.replaceState({}, '', '/')
   }
 
   const fetchBalance = async (userId) => {

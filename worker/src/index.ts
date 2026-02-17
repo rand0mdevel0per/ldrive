@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { createPayment } from './ldc.js';
 import webdavRoutes from './webdav.js';
@@ -16,6 +17,8 @@ type Bindings = {
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('*', cors());
 
 app.get('/', (c) => c.text('LDrive Gateway'));
 
