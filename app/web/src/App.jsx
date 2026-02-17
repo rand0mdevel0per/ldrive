@@ -11,10 +11,11 @@ export default function App() {
   const [webdavCreds, setWebdavCreds] = useState(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('ldrive_token')
-    if (token) {
-      setUser({ token })
-      fetchBalance(token)
+    const savedUser = localStorage.getItem('ldrive_user')
+    if (savedUser) {
+      const userData = JSON.parse(savedUser)
+      setUser(userData)
+      fetchBalance(userData.id)
     }
 
     const savedDeviceToken = localStorage.getItem('device_token')
@@ -41,6 +42,7 @@ export default function App() {
           headers: { Authorization: `Bearer ${data.access_token}` }
         })
         const userData = await userRes.json()
+        localStorage.setItem('ldrive_user', JSON.stringify(userData))
         setUser(userData)
         fetchBalance(userData.id)
       }
@@ -70,6 +72,7 @@ export default function App() {
 
   const logout = () => {
     localStorage.removeItem('ldrive_token')
+    localStorage.removeItem('ldrive_user')
     setUser(null)
     setBalance(0)
   }
