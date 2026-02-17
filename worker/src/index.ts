@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { createPayment } from './ldc.js';
 import webdavRoutes from './webdav.js';
+import { calculateStorageCost, calculateBandwidthCost, creditsToLdc } from './pricing.js';
 
 type Bindings = {
   GATEWAY_URL: string;
@@ -27,20 +28,39 @@ app.route('/dav', webdavRoutes);
 
 app.post('/pay', async (c) => {
   const { fileSize, fileName } = await c.req.json();
-  const money = Math.ceil(fileSize / (1024 * 1024 * 1024)) * 0.1;
+  const credits = calculateStorageCost(fileSize);
+  const ldc = creditsToLdc(credits);
   const outTradeNo = `LD${Date.now()}`;
 
   try {
     const payUrl = await createPayment(
       c.env.LDC_PID,
       c.env.LDC_SECRET,
-      money,
-      `LDrive存储: ${fileName}`,
+      ldc,
+      `LDrive存储: ${fileName} (${credits} credits)`,
       outTradeNo
     );
-    return c.json({ payUrl, outTradeNo });
+    return c.json({ payUrl, outTradeNo, credits, ldc });
   } catch (e) {
     return c.json({ error: 'Payment failed' }, 500);
+  }
+});
+
+app.post('/recharge', async (c) => {
+  const { amount } = await c.req.json();
+  const outTradeNo = `LDR${Date.now()}`;
+
+  try {
+    const payUrl = await createPayment(
+      c.env.LDC_PID,
+      c.env.LDC_SECRET,
+      amount,
+      `LDrive充值: ${amount} LDC`,
+      outTradeNo
+    );
+    return c.json({ payUrl, outTradeNo, credits: amount });
+  } catch (e) {
+    return c.json({ error: 'Recharge failed' }, 500);
   }
 });
 
