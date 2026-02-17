@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "CREDITS_KV"
-id = "your_kv_namespace_id"
+id = "7e8e8a7ed59d42159c6ea50111ac3a6a"
 
 [vars]
 GATEWAY_URL = "http://localhost:3000"
