@@ -1,0 +1,11 @@
+[package]
+name = "ldrive-pqc"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chacha20 = "0.9"
+fips203 = "0.2"
+fips204 = "0.2"
+rand = { workspace = true }
+anyhow = { workspace = true }

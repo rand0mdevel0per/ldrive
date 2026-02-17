@@ -1,0 +1,10 @@
+name = "ldrive-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+GATEWAY_URL = "http://localhost:3000"
+LDC_PID = "your_client_id"
+LDC_SECRET = "your_client_secret"
+WEBDAV_USER = "admin"
+WEBDAV_PASS = "password"

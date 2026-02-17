@@ -1,0 +1,15 @@
+[package]
+name = "ldrive-chunk"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ldrive-common = { workspace = true }
+blake3 = { workspace = true }
+fastcdc = "3"
+reed-solomon-erasure = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

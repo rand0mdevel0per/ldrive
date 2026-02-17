@@ -1,0 +1,10 @@
+target/
+node_modules/
+.svelte-kit/
+build/
+dist/
+*.log
+.env
+.DS_Store
+Cargo.lock
+package-lock.json

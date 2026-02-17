@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package ldrive;
+
+// Top-level P2P message envelope
+message PeerMessage {
+  oneof msg {
+    Handshake handshake = 1;
+    Ping ping = 2;
+    Pong pong = 3;
+    ChunkPush chunk_push = 4;
+    ChunkPushAck chunk_push_ack = 5;
+    ChunkRequest chunk_request = 6;
+    ChunkResponse chunk_response = 7;
+    ManifestPush manifest_push = 8;
+    ManifestPushAck manifest_push_ack = 9;
+    ManifestRequest manifest_request = 10;
+    ManifestResponse manifest_response = 11;
+    TransferComplete transfer_complete = 12;
+    TransferCompleteAck transfer_complete_ack = 13;
+    Challenge challenge = 14;
+    ChallengeResponse challenge_response = 15;
+  }
+}
+
+// Initial handshake: exchange node identity
+message Handshake {
+  bytes node_id = 1;    // 20 bytes, BLAKE3(pubkey)[..20]
+  bytes public_key = 2; // Ed25519 public key
+  string version = 3;   // protocol version
+}
+
+message Ping {
+  uint64 nonce = 1;
+}
+
+message Pong {
+  uint64 nonce = 1;
+}
+
+// Push a chunk to a storage node
+message ChunkPush {
+  bytes hash = 1;       // 32 bytes BLAKE3
+  bytes data = 2;       // raw chunk bytes
+  uint32 size = 3;      // original data size
+}
+
+message ChunkPushAck {
+  bytes hash = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Request a chunk from a storage node
+message ChunkRequest {
+  bytes hash = 1;       // 32 bytes BLAKE3
+}
+
+message ChunkResponse {
+  bytes hash = 1;
+  bytes data = 2;
+  bool found = 3;
+  string error = 4;
+}
+
+// Push a file manifest
+message ManifestPush {
+  bytes file_hash = 1;  // 32 bytes, BLAKE3 of entire file
+  string file_name = 2;
+  uint64 file_size = 3;
+  repeated ChunkInfo chunks = 4;
+}
+
+message ManifestPushAck {
+  bytes file_hash = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Request a file manifest
+message ManifestRequest {
+  bytes file_hash = 1;
+}
+
+message ManifestResponse {
+  bytes file_hash = 1;
+  string file_name = 2;
+  uint64 file_size = 3;
+  repeated ChunkInfo chunks = 4;
+  bool found = 5;
+  string error = 6;
+}
+
+// Chunk metadata within a manifest
+message ChunkInfo {
+  bytes hash = 1;       // 32 bytes BLAKE3
+  uint32 size = 2;
+  uint32 index = 3;     // position in file
+}
+
+// Signal that a file transfer is done
+message TransferComplete {
+  bytes file_hash = 1;
+  uint32 total_chunks = 2;
+}
+
+message TransferCompleteAck {
+  bytes file_hash = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+// Proof of Storage challenge
+message Challenge {
+  bytes chunk_hash = 1;  // 32 bytes BLAKE3
+  uint64 offset = 2;     // byte offset in chunk
+  uint32 length = 3;     // bytes to read
+  bytes nonce = 4;       // 32 bytes random nonce
+}
+
+message ChallengeResponse {
+  bytes chunk_hash = 1;  // 32 bytes BLAKE3
+  bytes proof = 2;       // 32 bytes BLAKE3(nonce || chunk_data[offset..offset+length])
+}

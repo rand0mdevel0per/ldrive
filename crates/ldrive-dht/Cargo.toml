@@ -1,0 +1,21 @@
+[package]
+name = "ldrive-dht"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ldrive-proto = { workspace = true }
+ldrive-common = { workspace = true }
+ldrive-net = { workspace = true }
+tokio = { workspace = true }
+quinn = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+prost = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }
+blake3 = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

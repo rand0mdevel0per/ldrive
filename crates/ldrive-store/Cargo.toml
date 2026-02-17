@@ -1,0 +1,16 @@
+[package]
+name = "ldrive-store"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ldrive-common = { workspace = true }
+redb = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+hex = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+blake3 = { workspace = true }
