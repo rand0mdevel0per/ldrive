@@ -8,6 +8,7 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [balance, setBalance] = useState(0)
   const [deviceToken, setDeviceToken] = useState('')
+  const [webdavCreds, setWebdavCreds] = useState(null)
 
   useEffect(() => {
     const token = localStorage.getItem('ldrive_token')
@@ -15,10 +16,13 @@ export default function App() {
       setUser({ token })
       fetchBalance(token)
     }
-    
+
     const savedDeviceToken = localStorage.getItem('device_token')
     if (savedDeviceToken) setDeviceToken(savedDeviceToken)
-    
+
+    const savedWebdav = localStorage.getItem('webdav_creds')
+    if (savedWebdav) setWebdavCreds(JSON.parse(savedWebdav))
+
     const code = new URLSearchParams(window.location.search).get('code')
     if (code) handleOAuthCallback(code)
   }, [])
@@ -94,6 +98,17 @@ export default function App() {
     localStorage.setItem('device_token', token)
   }
 
+  const setupWebDAV = async () => {
+    const token = localStorage.getItem('ldrive_token')
+    const res = await fetch(`${WORKER_URL}/webdav/setup`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const data = await res.json()
+    setWebdavCreds(data)
+    localStorage.setItem('webdav_creds', JSON.stringify(data))
+  }
+
   return (
     <div className="app">
       <header>
@@ -145,6 +160,23 @@ export default function App() {
                 </div>
               ) : (
                 <button onClick={generateToken} className="btn-primary">生成 Token</button>
+              )}
+            </div>
+
+            <div className="card">
+              <h3><Upload size={20} /> WebDAV 访问</h3>
+              <p>用于文件上传和管理</p>
+              {webdavCreds ? (
+                <div>
+                  <p><strong>用户名:</strong> {webdavCreds.username}</p>
+                  <div className="token-display">
+                    <code>{webdavCreds.password}</code>
+                    <button onClick={() => navigator.clipboard.writeText(webdavCreds.password)} className="btn-secondary">复制</button>
+                  </div>
+                  <p style={{marginTop: '1rem', fontSize: '0.9rem'}}>地址: {WORKER_URL}/dav/</p>
+                </div>
+              ) : (
+                <button onClick={setupWebDAV} className="btn-primary">设置 WebDAV</button>
               )}
             </div>
 

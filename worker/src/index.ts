@@ -10,8 +10,6 @@ type Bindings = {
   GATEWAY_URL: string;
   LDC_PID: string;
   LDC_SECRET: string;
-  WEBDAV_USER: string;
-  WEBDAV_PASS: string;
   CREDITS_KV: KVNamespace;
   LD_CLIENT_ID: string;
   LD_CLIENT_SECRET: string;
@@ -22,11 +20,20 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.get('/', (c) => c.text('LDrive Gateway'));
 
 app.use('/dav/*', async (c, next) => {
-  const auth = basicAuth({
-    username: c.env.WEBDAV_USER,
-    password: c.env.WEBDAV_PASS,
-  });
-  return auth(c, next);
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader?.startsWith('Basic ')) {
+    return c.text('Unauthorized', 401, { 'WWW-Authenticate': 'Basic realm="LDrive"' });
+  }
+
+  const [username, password] = atob(authHeader.slice(6)).split(':');
+  const storedPass = await c.env.CREDITS_KV.get(`webdav:${username}`);
+
+  if (!storedPass || storedPass !== password) {
+    return c.text('Unauthorized', 401);
+  }
+
+  c.set('username', username);
+  await next();
 });
 
 app.route('/dav', webdavRoutes);
@@ -149,6 +156,74 @@ app.post('/ldc/notify', async (c) => {
   const data = await c.req.json();
   // TODO: Verify signature and update user balance
   return c.json({ success: true });
+});
+
+app.post('/webdav/setup', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return c.json({ error: 'No token' }, 401);
+
+  const userRes = await fetch('https://connect.linux.do/api/user', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const user = await userRes.json();
+
+  const password = crypto.randomUUID();
+  await c.env.CREDITS_KV.put(`webdav:${user.username}`, password);
+
+  return c.json({ username: user.username, password });
+});
+
+app.post('/flink/create', async (c) => {
+  const { filepath, filename } = await c.req.json();
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return c.json({ error: 'No token' }, 401);
+
+  const userRes = await fetch('https://connect.linux.do/api/user', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const user = await userRes.json();
+
+  const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(filepath))))
+    .map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+
+  await c.env.CREDITS_KV.put(`flink:${user.username}:${hash}`, JSON.stringify({ filepath, filename }));
+
+  return c.json({ url: `/flink/${user.username}/${hash}/${filename}`, hash });
+});
+
+app.get('/flink/:usr/:hash/:filename', async (c) => {
+  const { usr, hash } = c.req.param();
+  const data = await c.env.CREDITS_KV.get(`flink:${usr}:${hash}`);
+
+  if (!data) return c.text('Not found', 404);
+
+  const { filepath } = JSON.parse(data);
+  // TODO: Fetch file from storage and return
+  return c.text('File access endpoint - TODO: implement storage fetch');
+});
+
+app.get('/pub/*', async (c) => {
+  const path = c.req.path.replace('/pub/', '');
+  // TODO: Fetch from public folder and return
+  return c.text(`Public file access: ${path} - TODO: implement`);
+});
+
+app.get('/flink/check/:filepath', async (c) => {
+  const filepath = c.req.param('filepath');
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return c.json({ error: 'No token' }, 401);
+
+  const userRes = await fetch('https://connect.linux.do/api/user', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const user = await userRes.json();
+
+  const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(filepath))))
+    .map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+
+  const exists = await c.env.CREDITS_KV.get(`flink:${user.username}:${hash}`);
+
+  return c.json({ exists: !!exists, hash });
 });
 
 export default app;
