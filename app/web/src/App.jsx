@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Wallet, Key, LogIn, LogOut, Upload, Download } from 'lucide-react'
 
 const WORKER_URL = 'https://ldrive-worker.rand0mk4cas.workers.dev'
-const OAUTH_URL = 'https://connect.linux.do'
+const CLIENT_ID = 'kXMWzKAsXA0RvveyblrjNE6cnCn6hcfn'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -24,19 +24,44 @@ export default function App() {
   }, [])
 
   const handleOAuthCallback = async (code) => {
-    const token = `mock_token_${Date.now()}`
-    localStorage.setItem('ldrive_token', token)
-    setUser({ token })
+    try {
+      const res = await fetch(`${WORKER_URL}/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: window.location.origin })
+      })
+      const data = await res.json()
+      if (data.access_token) {
+        localStorage.setItem('ldrive_token', data.access_token)
+        const userRes = await fetch(`${WORKER_URL}/oauth/user`, {
+          headers: { Authorization: `Bearer ${data.access_token}` }
+        })
+        const userData = await userRes.json()
+        setUser(userData)
+        fetchBalance(userData.id)
+      }
+    } catch (e) {
+      console.error('OAuth failed:', e)
+    }
     window.history.replaceState({}, '', '/')
   }
 
-  const fetchBalance = async (token) => {
-    setBalance(Math.random() * 100)
+  const fetchBalance = async (userId) => {
+    try {
+      const token = localStorage.getItem('ldrive_token')
+      const res = await fetch(`${WORKER_URL}/balance/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      setBalance(data.balance || 0)
+    } catch (e) {
+      setBalance(0)
+    }
   }
 
   const login = () => {
     const redirectUri = window.location.origin
-    window.location.href = `${OAUTH_URL}/oauth/authorize?client_id=ldrive&redirect_uri=${redirectUri}&response_type=code`
+    window.location.href = `https://connect.linux.do/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile`
   }
 
   const logout = () => {

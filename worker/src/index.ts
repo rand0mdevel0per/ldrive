@@ -13,6 +13,8 @@ type Bindings = {
   WEBDAV_USER: string;
   WEBDAV_PASS: string;
   CREDITS_KV: KVNamespace;
+  LD_CLIENT_ID: string;
+  LD_CLIENT_SECRET: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -97,6 +99,56 @@ app.get('/admin/metrics', async (c) => {
   const date = c.req.query('date');
   const metrics = await getMetrics(c.env.CREDITS_KV, date);
   return c.json(metrics || { message: 'No data' });
+});
+
+app.post('/oauth/token', async (c) => {
+  const { code, redirect_uri } = await c.req.json();
+
+  try {
+    const res = await fetch('https://connect.linux.do/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri,
+        client_id: c.env.LD_CLIENT_ID,
+        client_secret: c.env.LD_CLIENT_SECRET,
+      }),
+    });
+
+    const data = await res.json();
+    return c.json(data);
+  } catch (e) {
+    return c.json({ error: 'OAuth failed' }, 500);
+  }
+});
+
+app.get('/oauth/user', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return c.json({ error: 'No token' }, 401);
+
+  try {
+    const res = await fetch('https://connect.linux.do/api/user', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const user = await res.json();
+    return c.json(user);
+  } catch (e) {
+    return c.json({ error: 'Failed to fetch user' }, 500);
+  }
+});
+
+app.get('/balance/:userId', async (c) => {
+  const userId = c.req.param('userId');
+  const balance = await c.env.CREDITS_KV.get(`balance:${userId}`);
+  return c.json({ balance: balance ? parseFloat(balance) : 0 });
+});
+
+app.post('/ldc/notify', async (c) => {
+  const data = await c.req.json();
+  // TODO: Verify signature and update user balance
+  return c.json({ success: true });
 });
 
 export default app;

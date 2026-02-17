@@ -8,7 +8,9 @@ id = "7e8e8a7ed59d42159c6ea50111ac3a6a"
 
 [vars]
 GATEWAY_URL = "http://localhost:3000"
-LDC_PID = "your_client_id"
-LDC_SECRET = "your_client_secret"
+LD_CLIENT_ID = "kXMWzKAsXA0RvveyblrjNE6cnCn6hcfn"
+LD_CLIENT_SECRET = "sifV8rTg4qGZJRTc987BxNfEOh8wlVtt"
+LDC_PID = "pending"
+LDC_SECRET = "pending"
 WEBDAV_USER = "admin"
 WEBDAV_PASS = "password"
