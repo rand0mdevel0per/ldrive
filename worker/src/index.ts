@@ -3,6 +3,8 @@ import { basicAuth } from 'hono/basic-auth';
 import { createPayment } from './ldc.js';
 import webdavRoutes from './webdav.js';
 import { calculateStorageCost, calculateBandwidthCost, creditsToLdc } from './pricing.js';
+import { requireBalance, rateLimit } from './middleware.js';
+import { recordMetric, getMetrics } from './monitoring.js';
 
 type Bindings = {
   GATEWAY_URL: string;
@@ -10,6 +12,7 @@ type Bindings = {
   LDC_SECRET: string;
   WEBDAV_USER: string;
   WEBDAV_PASS: string;
+  CREDITS_KV: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -26,7 +29,7 @@ app.use('/dav/*', async (c, next) => {
 
 app.route('/dav', webdavRoutes);
 
-app.post('/pay', async (c) => {
+app.post('/pay', rateLimit(10, 60000), async (c) => {
   const { fileSize, fileName } = await c.req.json();
   const credits = calculateStorageCost(fileSize);
   const ldc = creditsToLdc(credits);
@@ -64,15 +67,19 @@ app.post('/recharge', async (c) => {
   }
 });
 
-app.get('/file/:hash', async (c) => {
+app.get('/file/:hash', requireBalance(0.001), rateLimit(20, 60000), async (c) => {
   const hash = c.req.param('hash');
   const gatewayUrl = c.env.GATEWAY_URL;
 
   try {
     const resp = await fetch(`${gatewayUrl}/api/file/${hash}`);
     if (!resp.ok) {
+      await recordMetric(c.env.CREDITS_KV, 'error');
       return c.text('File not found', 404);
     }
+
+    const size = parseInt(resp.headers.get('Content-Length') || '0');
+    await recordMetric(c.env.CREDITS_KV, 'download', size);
 
     return new Response(resp.body, {
       headers: {
@@ -81,8 +88,15 @@ app.get('/file/:hash', async (c) => {
       },
     });
   } catch (e) {
+    await recordMetric(c.env.CREDITS_KV, 'error');
     return c.text('Gateway error', 502);
   }
+});
+
+app.get('/admin/metrics', async (c) => {
+  const date = c.req.query('date');
+  const metrics = await getMetrics(c.env.CREDITS_KV, date);
+  return c.json(metrics || { message: 'No data' });
 });
 
 export default app;
