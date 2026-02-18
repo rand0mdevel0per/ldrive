@@ -64,11 +64,11 @@ jobs:
 
       - name: Rename artifacts
         run: |
-          mv ldrive-node-linux-x86_64/ldrive-node ldrive-node-linux-x86_64
-          mv ldrive-node-linux-aarch64/ldrive-node ldrive-node-linux-aarch64
-          mv ldrive-node-macos-x86_64/ldrive-node ldrive-node-macos-x86_64
-          mv ldrive-node-macos-aarch64/ldrive-node ldrive-node-macos-aarch64
-          mv ldrive-node-windows-x86_64.exe/ldrive-node.exe ldrive-node-windows-x86_64.exe
+          mv ldrive-node-linux-x86_64/ldrive-node ./ldrive-node-linux-x86_64
+          mv ldrive-node-linux-aarch64/ldrive-node ./ldrive-node-linux-aarch64
+          mv ldrive-node-macos-x86_64/ldrive-node ./ldrive-node-macos-x86_64
+          mv ldrive-node-macos-aarch64/ldrive-node ./ldrive-node-macos-aarch64
+          mv ldrive-node-windows-x86_64.exe/ldrive-node.exe ./ldrive-node-windows-x86_64.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
