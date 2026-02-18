@@ -16,12 +16,28 @@ case $ARCH in
     *) echo "❌ Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
+case $OS in
+    darwin) OS="macos" ;;
+    linux) OS="linux" ;;
+    *) echo "❌ Unsupported OS: $OS"; exit 1 ;;
+esac
+
 # Get latest release
+echo "📡 Fetching latest release info..."
 RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
-DOWNLOAD_URL=$(curl -s $RELEASE_URL | grep "browser_download_url.*ldrive-node-$OS-$ARCH" | cut -d '"' -f 4)
+RELEASE_DATA=$(curl -sL $RELEASE_URL)
+
+if [ -z "$RELEASE_DATA" ]; then
+    echo "❌ Failed to fetch release data from GitHub API"
+    exit 1
+fi
+
+DOWNLOAD_URL=$(echo "$RELEASE_DATA" | grep "browser_download_url.*ldrive-node-$OS-$ARCH\"" | cut -d '"' -f 4 | head -1)
 
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "❌ No release found for $OS-$ARCH"
+    echo "Available assets:"
+    echo "$RELEASE_DATA" | grep "browser_download_url" | cut -d '"' -f 4
     exit 1
 fi
 
