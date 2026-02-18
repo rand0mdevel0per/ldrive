@@ -66,10 +66,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ldrive-node-linux-x86_64/ldrive-node
-            ldrive-node-linux-aarch64/ldrive-node
-            ldrive-node-macos-x86_64/ldrive-node
-            ldrive-node-macos-aarch64/ldrive-node
-            ldrive-node-windows-x86_64.exe/ldrive-node.exe
+            ldrive-node-*/*
           draft: false
           prerelease: false
